@@ -13,10 +13,15 @@ import time
 import numpy as np
 import json
 import streamlit.components.v1 as components
-from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt.efficient_frontier import EfficientFrontier,EfficientSemivariance
 from pypfopt import risk_models
 from pypfopt import expected_returns
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
+from pypfopt.risk_models import CovarianceShrinkage
+
+
+
+
 connection = db.getConnectionCursor()
 dashboard = st.sidebar.selectbox(
     'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern'))
@@ -194,7 +199,6 @@ elif dashboard == 'Portfolio':
         alldf = alldf.loc[alldf['Symbol'].isin(stock_in_sector)]              
     else:    
         df = pd.read_csv("nifty Sectors/"+sector+".csv")
-        stock_in_sector = pd.Series(df['Symbol'])
         alldf = alldf.loc[alldf['Symbol'].isin(df['Symbol'])]        
          
     #alldf = alldf.set_index(pd.DatetimeIndex(df['Date'].values))
@@ -205,10 +209,16 @@ elif dashboard == 'Portfolio':
     alldf = alldf.set_index(pd.DatetimeIndex(alldf.index.values))
     alldf = alldf.dropna(axis=1)
     #medals.reindex_axis(['Gold', 'Silver', 'Bronze'], axis=1)
+    st.subheader("Stocks")
     st.write(alldf)
-    mu = expected_returns.mean_historical_return(alldf)
-    s = risk_models.sample_cov(alldf)
-    ef = EfficientFrontier(mu,s)
+    #mu = expected_returns.mean_historical_return(alldf)
+    #s = risk_models.sample_cov(alldf)
+    span = st.slider('Slide me to select span', min_value=1, max_value=500)
+    mu = expected_returns.ema_historical_return(alldf,span=span)
+    st.subheader("Returns")
+    st.write(mu)
+    s = CovarianceShrinkage(alldf).shrunk_covariance()   
+    ef = EfficientFrontier(mu,s) 
     weight = ef.max_sharpe()
     clean_weight = ef.clean_weights()
     expectedreturn, volatility, Sharperatio = ef.portfolio_performance(verbose=True)
@@ -224,5 +234,4 @@ elif dashboard == 'Portfolio':
     st.write(pd.DataFrame(weights, columns=weights.keys(), index=[0]))
     st.subheader("Discreate Allocation")
     st.write(pd.DataFrame(allocation, columns=allocation.keys(), index=[0]))
-    st.subheader("Funds Reamaning:"+str(leftover))
-    alldf.pct    
+    st.subheader("Funds Reamaning:"+str(round(leftover,2)))
