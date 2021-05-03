@@ -3,7 +3,6 @@ import requests as req
 import sqlite3
 from nsepy import *
 import db
-import talib as tb
 import patterns
 import pandas as pd
 import streamlit.components.v1 as components
@@ -14,17 +13,16 @@ import numpy as np
 import json
 import streamlit.components.v1 as components
 from pypfopt.efficient_frontier import EfficientFrontier,EfficientSemivariance
-from pypfopt import risk_models
+from pypfopt import risk_models,plotting
 from pypfopt import expected_returns
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from pypfopt.risk_models import CovarianceShrinkage
-
-
+from strategies import supertrend 
 
 
 connection = db.getConnectionCursor()
 dashboard = st.sidebar.selectbox(
-    'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern'))
+    'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern','Market Sentiment'))
 cursor = connection.cursor()
 if dashboard == 'All Stocks':
     st.title(dashboard)
@@ -94,37 +92,11 @@ elif dashboard == 'Strategies':
                     df = pd.read_sql("select * from stock_price where symbol= '"+stock+"'", connection)
                     if df.empty:
                         continue
-                    df['20sma'] = df['Close'].rolling(window=20).mean()
-                    df['stddev'] = df['Close'].rolling(window=20).std()
-                    df['lower_band'] = df['20sma'] - (2* df['stddev'])
-                    df['upper_band'] = df['20sma'] + (2* df['stddev'])
-                    df['TR'] = abs(df['High']) - df['Low']
-                    df['ATR'] = df['TR'].rolling(window=20).mean()
-
-                    df['lower_keltner'] = df['20sma'] - (df['ATR'] * 1.5)
-                    df['upper_keltner'] = df['20sma'] + (df['ATR'] * 1.5)
-                    obv = [] 
-                    obv.append(0)
-                    for index in range(1,len(df.Close)):   
-                        if df.Close[index] > df.Close[index-1]:
-                            obv.append(obv[-1] + df.Volume[i])
-                        elif df.Close[index] < df.Close[index-1]:
-                             obv.append(obv[-1] - df.Volume[i]) 
-                        else:
-                            obv.append(obv[-1])
-                    df['OBV'] = obv
-                    df['OBV_EMA'] = df['OBV'].ewm(span=20).mean()
-     
-                    def in_squeeze(df):
-                        return df['lower_band'] > df['lower_keltner'] and df['upper_band'] < df['upper_keltner'] 
-                    
-                    df['squeeze_on'] = df.apply(in_squeeze,axis=1)
-                    # st.dataframe(df)
+                   # st.dataframe(df)
                     #if len(df.squeeze_on.tail()) > 3:
-                    if df.iloc[-3]['squeeze_on'] and not df.iloc[-1]['squeeze_on'] and df.iloc[-1]['OBV'] > df.iloc[-1]['OBV_EMA']:
+                    if df.iloc[-3]['squeeze_on'] and df.iloc[-1]['OBV'] > df.iloc[-1]['OBV_EMA']:
                             mess = "{} is coming out of squeezer".format(stock)
-                            st.write(mess)
-                            
+                            st.subheader(mess)                           
                             st.dataframe(df.sort_values(by=['Date'], ascending=False))
                             newdf = df
                             candlestick = go.Candlestick(x=newdf['Date'],open=newdf['Open'],high=newdf['High'],low=newdf['Low'],close=newdf['Close'])
@@ -135,11 +107,13 @@ elif dashboard == 'Strategies':
                             OBV = go.Scatter(x=newdf['Date'],y=newdf['OBV'],name = 'On Balace Volume',line = {'color':'black'})
                             OBV_EMA = go.Scatter(x=newdf['Date'],y=newdf['OBV_EMA'],name = 'On Balace Volume EMA',line = {'color':'green'})
                             
-
-                            fig = go.Figure(data=[candlestick,upper_band,lower_band,upper_keltner,lower_keltner,OBV,OBV_EMA])
+                            fig_vol = go.Figure(data=[OBV,OBV_EMA])
+                            fig = go.Figure(data=[candlestick,upper_band,lower_band,upper_keltner,lower_keltner])
                             fig.layout.xaxis.type = 'category'
                             fig.layout.xaxis.rangeslider.visible = False
-                            st.plotly_chart(fig)
+                            first,last = st.beta_columns(2)
+                            first.plotly_chart(fig)
+                            last.plotly_chart(fig_vol)
                     my_bar.progress(percent_complete)
                     if percent_complete == 100:
                         st.balloons()
@@ -151,39 +125,72 @@ elif dashboard == 'Strategies':
                 for stock in stock_in_sector:
                     percent_complete =  int( (i/len(stock_in_sector)) * 100)  
                     i=i+1
-                    st.subheader(stock)
                     df = pd.read_sql("select * from stock_price where symbol= '"+stock+"'", connection)
                     if df.empty:
-                        continue    
-                    obv = [] 
-                    obv.append(0)
-                    for index in range(1,len(df.Close)):   
-                        if df.Close[index] > df.Close[index-1]:
-                            obv.append(obv[-1] + df.Volume[i])
-                        elif df.Close[index] < df.Close[index-1]:
-                             obv.append(obv[-1] - df.Volume[i]) 
-                        else:
-                            obv.append(obv[-1])
-                    df['OBV'] = obv
-                    df['OBV_EMA'] = df['OBV'].ewm(span=20).mean()
-                    newdf = df
-                    candlestick = go.Candlestick(x=newdf['Date'],open=newdf['Open'],high=newdf['High'],low=newdf['Low'],close=newdf['Close'])                         
-                    OBV = go.Scatter(x=newdf['Date'],y=newdf['OBV'],name = 'Volume',line = {'color':'yellow'})
-                    OBV_EMA = go.Scatter(x=newdf['Date'],y=newdf['OBV_EMA'],name = 'Volume EMA',line = {'color':'green'})
-                    fig = go.Figure(data=[OBV,OBV_EMA])
-                    fig.layout.xaxis.type = 'category'
-                    fig.layout.xaxis.rangeslider.visible = False
-                    figPrice = go.Figure(data=[candlestick])
-                    figPrice.layout.xaxis.type = 'category'
-                    figPrice.layout.xaxis.rangeslider.visible = False
-                    st.plotly_chart(figPrice)
-                    st.plotly_chart(fig)
-              
+                        continue                     
+                    newdf = df 
+                    if newdf.iloc[-1]['OBV'] > newdf.iloc[-1]['OBV_EMA'] and newdf.iloc[-1]['Close'] > newdf.iloc[-1]['21ema'] and newdf.iloc[-1]['Close'] > newdf.iloc[-1]['VWAP']:
+                        mess = "{}  is above OBV, 20EMA and VWAP ".format(stock)
+                        st.subheader(mess)
+                        candlestick = go.Candlestick(x=newdf['Date'],open=newdf['Open'],high=newdf['High'],low=newdf['Low'],close=newdf['Close'])                         
+                        OBV = go.Scatter(x=newdf['Date'],y=newdf['OBV'],name = 'Volume',line = {'color':'yellow'})
+                        OBV_EMA = go.Scatter(x=newdf['Date'],y=newdf['OBV_EMA'],name = 'Volume EMA',line = {'color':'green'})
+                        fig = go.Figure(data=[OBV,OBV_EMA])
+                        fig.layout.xaxis.type = 'category'
+                        fig.layout.xaxis.rangeslider.visible = False
+                        figPrice = go.Figure(data=[candlestick])
+                        figPrice.layout.xaxis.type = 'category'
+                        figPrice.layout.xaxis.rangeslider.visible = False
+                        st.plotly_chart(figPrice)
+                        st.plotly_chart(fig)
+                
 
-                    my_bar.progress(percent_complete)
+                        my_bar.progress(percent_complete)
                 if percent_complete == 100:
                     st.balloons()
+    elif strategy == 'SuperTrend':
+        if sector != "":
+            my_bar = st.progress(0)
+            percent_complete = 1
+            i = 1     
+            for stock in stock_in_sector[:3]:
+                st.subheader(stock)
+                percent_complete =  int( (i/len(stock_in_sector)) * 100)  
+                i=i+1
+                df = pd.read_sql("select * from stock_price where symbol= '"+stock+"'", connection)
+                if df.empty:
+                    continue    
+                df = supertrend.run_supertrend(df,10,3)
+                df['in_uptrend']= True
+                for current in range(1,len(df.Close)):
+                    previous = current - 1
+                    
+                    if df['Close'][current] > df['upperband'][previous]:
+                        df['in_uptrend'][current] = True
+                    elif df['Close'][current] < df['Lowerband'][previous]:
+                        df['in_uptrend'][current] = False
+                    else:
+                        df['in_uptrend'][current] = df['in_uptrend'][previous]
+                        
+                        if df['in_uptrend'][current] and df['Lowerband'][current]  < df['Lowerband'][previous]:
+                            df['Lowerband'][current] =  df['Lowerband'][previous]
 
+                        if not df['in_uptrend'][current] and df['upperband'][current]  > df['upperband'][previous]:
+                            df['upperband'][current] =  df['upperband'][previous]
+
+                candlestick = go.Candlestick(x=df['Date'],open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'])
+                upper_band = go.Scatter(x=df['Date'],y=df['upperband'],name = 'Upper  Band',line = {'color':'red'})
+                lower_band = go.Scatter(x=df['Date'],y=df['Lowerband'],name = 'Lower  Band',line = {'color':'red'})
+                fig = go.Figure(data=[candlestick,upper_band,lower_band])
+                fig.layout.xaxis.type = 'category'
+                fig.layout.xaxis.rangeslider.visible = False
+                st.plotly_chart(fig)
+                 
+            
+
+                my_bar.progress(percent_complete)
+                if percent_complete == 100:
+                    st.balloons()
 
 elif dashboard == 'Portfolio':
     st.title(dashboard)
@@ -221,13 +228,14 @@ elif dashboard == 'Portfolio':
     ef = EfficientFrontier(mu,s) 
     weight = ef.max_sharpe()
     clean_weight = ef.clean_weights()
-    expectedreturn, volatility, Sharperatio = ef.portfolio_performance(verbose=True)
+    expectedreturn, volatility, Sharperatio = ef.portfolio_performance(verbose=False)
     st.subheader("Expected annual return: " +str(round(expectedreturn,2)*100)+'%')
     st.subheader("Annual volatility: "+str(round(volatility,2)*100)+'%')
     st.subheader("Sharpe Ratio: "+str(round(Sharperatio,2)))
     funds = st.slider('PortFolio Value:',min_value=50000,max_value=500000)
     latest_prices = get_latest_prices(alldf)
     weights = clean_weight
+
     da = DiscreteAllocation(weights,latest_prices,total_portfolio_value=funds)
     allocation,leftover = da.lp_portfolio() 
     st.subheader("Weight")
@@ -235,3 +243,9 @@ elif dashboard == 'Portfolio':
     st.subheader("Discreate Allocation")
     st.write(pd.DataFrame(allocation, columns=allocation.keys(), index=[0]))
     st.subheader("Funds Reamaning:"+str(round(leftover,2)))
+    
+  
+    
+    
+
+    
