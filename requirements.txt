@@ -1,1 +1,3 @@
 pyportfolioopt==1.4.1
+nsepy==0.7
+nsetools==1.0.11
