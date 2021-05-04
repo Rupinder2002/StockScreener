@@ -3,6 +3,7 @@ import nse
 
 def updateStocks(st,connection):
     try:
+        print(f'Inside update stock')
         createTables(connection)
         deleteTableRows(connection)
         updateTables(st,connection)
@@ -12,6 +13,7 @@ def updateStocks(st,connection):
     
     
 def createTables(connection):
+    print(f'Inside createTables')
     cursor = connection.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS "stock" ( "id" INTEGER, "symbol" text NOT NULL UNIQUE, "name" text NOT NULL, "sector" TEXT, PRIMARY KEY("id" AUTOINCREMENT) )')
     connection.commit()
@@ -31,6 +33,7 @@ def createTables(connection):
     connection.commit()
 
 def deleteTableRows(connection):
+    print(f'Inside deleteTableRows')
     cursor = connection.cursor()
     cursor.execute('DELETE from stock')
     connection.commit()
@@ -38,4 +41,5 @@ def deleteTableRows(connection):
     connection.commit()
     
 def updateTables(st,connection):
+    print(f'Inside updateTables')
     nse.updateStocksPrice(st,connection)        

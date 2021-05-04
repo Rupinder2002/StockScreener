@@ -41,7 +41,7 @@ def main():
     cursor = connection.cursor()
     if dashboard == 'All Stocks':
         st.title(dashboard)
-        
+        print(f'Inside dashboard : {dashboard}')
 
         cursor.execute('''select symbol from stock''')
         stocks_symbols = cursor.fetchall()
@@ -58,6 +58,7 @@ def main():
         
     elif dashboard == 'Pattern':
         stocks= {}
+        print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
         cursor.execute('''select symbol from stock''')
         stocks_symbols = cursor.fetchall()
@@ -79,6 +80,7 @@ def main():
                 st.write("BEARISH")
 
     elif dashboard == 'Strategies':  
+        print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
         cursor.execute('''select name from strategy''')
         strategies = cursor.fetchall()
@@ -208,6 +210,7 @@ def main():
                         st.balloons()
 
     elif dashboard == 'Portfolio':
+        print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
         cursor.execute('''select name from sectors''')
         sectors = cursor.fetchall()
@@ -260,6 +263,7 @@ def main():
         st.subheader("Funds Reamaning:"+str(round(leftover,2)))
     
     elif dashboard == 'Update Stocks':
+        print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
         icon('update')
         if st.button('Update Stocks'):

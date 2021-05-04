@@ -13,7 +13,7 @@ def insertStock(companies,connection):
         connection.commit()
     except Exception as e:
         print("Exception while inserting company : {} and exception {}".format(value,e))
-    print('Successfylly inserted stocks')
+    print('Successfylly inserted stocks symbol')
     
 def insertStockPrice(company,connection):
     try:

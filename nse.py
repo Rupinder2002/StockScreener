@@ -26,6 +26,7 @@ def updateStocksPrice(st,connection):
         percent_complete = 1 
         i = 1  
         for symbol in stocks_symbols:
+            print(f'Updating Stock : {symbol}')
             percent_complete =  int( (i/len(stocks_symbols)) * 100)
             i=i+1    
             stock = get_history(symbol=symbol,
