@@ -17,7 +17,7 @@ from pypfopt import risk_models,plotting
 from pypfopt import expected_returns
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from pypfopt.risk_models import CovarianceShrinkage
-from strategies import supertrend 
+import supertrend 
 from SessionState import get
 import update_stock
 

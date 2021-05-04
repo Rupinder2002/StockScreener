@@ -7,11 +7,13 @@ from datetime import date,timedelta
 
 
 
-
 def updateStocksList(nse,connection):
     all_stock_codes = nse.get_stock_codes(cached=False)
     all_stock_codes.pop('SYMBOL',None)
     insert.insertStock(all_stock_codes,connection)
+    insert.insertPattern(connection)
+    insert.insertsectors(connection)
+    insert.insertstrategies(connection)
 
 def updateStocksPrice(st,connection):
     nse = Nse()
@@ -26,7 +28,6 @@ def updateStocksPrice(st,connection):
         percent_complete = 1 
         i = 1  
         for symbol in stocks_symbols:
-            print(f'Updating Stock : {symbol}')
             percent_complete =  int( (i/len(stocks_symbols)) * 100)
             i=i+1    
             stock = get_history(symbol=symbol,
@@ -68,6 +69,7 @@ def updateStocksPrice(st,connection):
             stock['squeeze_on'] = stock.apply(in_squeeze,axis=1)
             stock.to_sql('stock_price', con=connection, if_exists='append',index=False)
             connection.commit()
+            st.subheader(f'Updating Stock : {symbol}')
             my_bar.progress(percent_complete)
         if percent_complete == 100:
             st.balloons()

@@ -39,6 +39,10 @@ def deleteTableRows(connection):
     connection.commit()
     cursor.execute('DELETE from stock_price')
     connection.commit()
+    cursor.execute('DELETE from strategy')
+    connection.commit()
+    cursor.execute('DELETE from sectors')
+    connection.commit()
     
 def updateTables(st,connection):
     print(f'Inside updateTables')
