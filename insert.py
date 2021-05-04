@@ -1,11 +1,9 @@
 import sqlite3
-import db
 import pandas as pd
 
 
 
-def insertStock(companies):
-    connection = db.getConnectionCursor()
+def insertStock(companies,connection):
     cursor = connection.cursor()    
     rows = []      
     for key, value in companies.items():
@@ -17,8 +15,7 @@ def insertStock(companies):
         print("Exception while inserting company : {} and exception {}".format(value,e))
     print('Successfylly inserted stocks')
     
-def insertStockPrice(company):
-    connection = db.getConnectionCursor()
+def insertStockPrice(company,connection):
     try:
         
         company.to_sql('stock_price', con=connection, if_exists='append',index=False)

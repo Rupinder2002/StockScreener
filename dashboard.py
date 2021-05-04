@@ -19,11 +19,25 @@ from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from pypfopt.risk_models import CovarianceShrinkage
 from strategies import supertrend 
 from SessionState import get
+import update_stock
+
+connection = db.getConnectionCursor()
+
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+def remote_css(url):
+    st.markdown(f'<link rel="stylesheet" href="https://fonts.google.com/icons?selected=Material+Icons">', unsafe_allow_html=True)    
+
+def icon(icon_name):
+    st.markdown(f'<span class="material-icons-outlined">{icon_name}</span>', unsafe_allow_html=True)
+
+
 
 def main():
-    connection = db.getConnectionCursor()
     dashboard = st.sidebar.selectbox(
-        'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern','Market Sentiment'))
+        'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern','Update Stocks'))
     cursor = connection.cursor()
     if dashboard == 'All Stocks':
         st.title(dashboard)
@@ -245,7 +259,18 @@ def main():
         st.write(pd.DataFrame(allocation, columns=allocation.keys(), index=[0]))
         st.subheader("Funds Reamaning:"+str(round(leftover,2)))
     
-  
+    elif dashboard == 'Update Stocks':
+        st.title(dashboard)
+        icon('update')
+        if st.button('Update Stocks'):
+            status = update_stock.updateStocks(st,connection)
+            if status == 'Success':
+                st.balloons()
+ 
+ 
+
+local_css("style.css")
+remote_css('https://fonts.googleapis.com/icon?family=Material+Icons') 
     
 session_state = get(password='')
 
