@@ -3,11 +3,13 @@ import insert
 from datetime import date
 from nsepy import get_history
 import sqlite3
+#import streamlit as st
 from datetime import date,timedelta
+#import db
+from datetime import datetime
 
-
-
-def updateStocksList(nse,connection):
+def updateStocksList(connection):
+    nse = Nse()
     all_stock_codes = nse.get_stock_codes(cached=False)
     all_stock_codes.pop('SYMBOL',None)
     insert.insertStock(all_stock_codes,connection)
@@ -15,12 +17,16 @@ def updateStocksList(nse,connection):
     insert.insertsectors(connection)
     insert.insertstrategies(connection)
 
-def updateStocksPrice(st,connection):
-    nse = Nse()
-    updateStocksList(nse,connection)
-    start = date.today() - timedelta(362)
-    end=date.today()
+def updateStocksPrice(st,connection): 
     cursor = connection.cursor()
+    cursor.execute('select Date from stock_price where symbol = "ZYDUSWELL" order by Date desc')
+    start_date = cursor.fetchone()
+    start_date = datetime.strptime(start_date[0], '%Y-%m-%d') + timedelta(1)
+    start_date = start_date.date()
+    end=date.today()
+    first,last = st.beta_columns(2)
+    first.subheader(f'Start Date : {start_date}')
+    last.subheader(f'End Date : {end}')
     try:
         cursor.execute('''select symbol from stock''')
         stocks_symbols = cursor.fetchall()
@@ -31,7 +37,7 @@ def updateStocksPrice(st,connection):
             percent_complete =  int( (i/len(stocks_symbols)) * 100)
             i=i+1    
             stock = get_history(symbol=symbol,
-                   start=start,
+                   start=start_date,
                    end=end)
             if stock.empty:
                 continue
@@ -78,3 +84,5 @@ def updateStocksPrice(st,connection):
     print('Successfylly Updated stocks Price')
     return 'success'
 
+
+#updateStocksPrice(st,db.getConnectionCursor())

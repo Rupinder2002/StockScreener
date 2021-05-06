@@ -4,8 +4,8 @@ import nse
 def updateStocks(st,connection):
     try:
         print(f'Inside update stock')
-        createTables(connection)
-        deleteTableRows(connection)
+        #createTables(connection)
+        #deleteTableRows(connection)
         updateTables(st,connection)
     except Exception as e:
         print("Exception while updating stocks  and exception {}".format(e))

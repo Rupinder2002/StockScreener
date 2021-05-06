@@ -11,7 +11,6 @@ sectors = {
 'Nifty Next 50':'10',
 'Nifty Consumer':'11',
 'Nifty Healthcare':'12',
-'Nifty Media':'13',
 'Nifty Oil and Gas':'14',
 'Nifty Private Banks':'15',
 'Nifty Psu Banks':'16',

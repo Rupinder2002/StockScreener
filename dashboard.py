@@ -20,9 +20,12 @@ from pypfopt.risk_models import CovarianceShrinkage
 import supertrend 
 from SessionState import get
 import update_stock
+import nse
+import talib as tb
+
 
 connection = db.getConnectionCursor()
-
+st. set_page_config(layout="wide")
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
@@ -36,6 +39,7 @@ def icon(icon_name):
 
 
 def main():
+    
     dashboard = st.sidebar.selectbox(
         'Which Dashboard to open?', ('All Stocks','Strategies','Analysis','Portfolio','Pattern','Update Stocks'))
     cursor = connection.cursor()
@@ -111,7 +115,7 @@ def main():
                             continue
                     # st.dataframe(df)
                         #if len(df.squeeze_on.tail()) > 3:
-                        if df.iloc[-3]['squeeze_on'] and df.iloc[-1]['OBV'] > df.iloc[-1]['OBV_EMA']:
+                        if df.iloc[-3]['squeeze_on'] and not df.iloc[-1]['squeeze_on'] and (df.iloc[-1]['OBV']*2) > df.iloc[-1]['OBV_EMA']:
                                 mess = "{} is coming out of squeezer".format(stock)
                                 st.subheader(mess)                           
                                 st.dataframe(df.sort_values(by=['Date'], ascending=False))
@@ -158,8 +162,9 @@ def main():
                             figPrice = go.Figure(data=[candlestick])
                             figPrice.layout.xaxis.type = 'category'
                             figPrice.layout.xaxis.rangeslider.visible = False
-                            st.plotly_chart(figPrice)
-                            st.plotly_chart(fig)
+                            first,last = st.beta_columns(2)
+                            first.plotly_chart(fig)
+                            last.plotly_chart(figPrice)
                     
 
                             my_bar.progress(percent_complete)
@@ -209,6 +214,99 @@ def main():
                     if percent_complete == 100:
                         st.balloons()
 
+        elif strategy == 'Support & Resistence':
+            if sector != "":
+                my_bar = st.progress(0)
+                percent_complete = 1
+                i = 1     
+                for stock in stock_in_sector:
+                    percent_complete =  int( (i/len(stock_in_sector)) * 100)  
+                    i=i+1
+                    df = pd.read_sql("select * from stock_price where symbol= '"+stock+"'", connection)
+                    if df.empty:
+                        continue                     
+                    s =  np.mean(df['High'] - df['Low'])
+                    df['Date'] = pd.to_datetime(df.index)
+                    df['Date'] = df['Date'].apply(mpl_dates.date2num)
+                    df = df.loc[:,['Date', 'Open', 'High', 'Low', 'Close']]
+                    def isFarFromLevel(l):
+                        return np.sum([abs(l-x) < s  for x in levels]) == 0
+                    levels = []
+                    def isSupport(df,i):
+                        support = df['Low'][i] < df['Low'][i-1]  and df['Low'][i] < df['Low'][i+1] and df['Low'][i+1] < df['Low'][i+2] and df['Low'][i-1] < df['Low'][i-2]
+
+                        return support
+
+                    def isResistance(df,i):
+                        resistance = df['High'][i] > df['High'][i-1]  and df['High'][i] > df['High'][i+1] and df['High'][i+1] > df['High'][i+2] and df['High'][i-1] > df['High'][i-2] 
+
+                        return resistance
+                    for i in range(2,df.shape[0]-2):
+                        if isSupport(df,i):
+                            l = df['Low'][i]
+
+                            if isFarFromLevel(l):
+                                levels.append((i,l))
+
+                        elif isResistance(df,i):
+                            l = df['High'][i]
+
+                            if isFarFromLevel(l):
+                                levels.append((i,l))
+
+        elif  strategy == 'Breakout':
+                  if sector != "":
+                    my_bar = st.progress(0)
+                    percent_complete = 1 
+                    i = 1
+                    def is_consolidating(df, percentage=2):
+                        recent_candlesticks = df[-15:]
+
+                        max_close = recent_candlesticks['Close'].max()
+                        min_close = recent_candlesticks['Close'].min()
+
+                        threshold = 1 - (percentage / 100)
+                        if min_close > (max_close * threshold):
+                            return True        
+
+                        return False
+                    
+                    def is_breaking_out(df, percentage=2.5):
+                        last_close = df[-1:]['Close'].values[0]
+
+                        if is_consolidating(df[:-1], percentage=percentage):
+                            recent_closes = df[-16:-1]
+
+                            if last_close > recent_closes['Close'].max():
+                                return True
+
+                        return False
+                    percentage = st.slider('Slide me to select percentage', min_value=1, max_value=10)
+       
+                    for stock in stock_in_sector:
+                        percent_complete =  int( (i/len(stock_in_sector)) * 100)  
+                        i=i+1    
+                        df = pd.read_sql("select * from stock_price where symbol= '"+stock+"'", connection)
+                        if df.empty:
+                            continue
+                        if is_breaking_out(df,percentage):
+                            newdf = df
+                            st.subheader(f'{stock} is breaking out...')
+                            candlestick = go.Candlestick(x=newdf['Date'],open=newdf['Open'],high=newdf['High'],low=newdf['Low'],close=newdf['Close'])
+                            OBV = go.Scatter(x=newdf['Date'],y=newdf['OBV'],name = 'On Balace Volume',line = {'color':'black'})
+                            OBV_EMA = go.Scatter(x=newdf['Date'],y=newdf['OBV_EMA'],name = 'On Balace Volume EMA',line = {'color':'green'})
+                            fig_vol = go.Figure(data=[OBV,OBV_EMA])      
+                            fig = go.Figure(data=[candlestick])
+                            fig.layout.xaxis.type = 'category'
+                            fig.layout.xaxis.rangeslider.visible = False
+                            first,last = st.beta_columns(2)
+                            first.plotly_chart(fig)
+                            last.plotly_chart(fig_vol)
+                    
+                        my_bar.progress(percent_complete)
+                        if percent_complete == 100:
+                            st.balloons()
+        
     elif dashboard == 'Portfolio':
         print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
@@ -270,24 +368,28 @@ def main():
             status = update_stock.updateStocks(st,connection)
             if status == 'Success':
                 st.balloons()
- 
+        if st.button('Update Stocks List'):
+            status = nse.updateStocksList(connection)
+            if status == 'Success':
+                st.balloons()
+        
  
 
 local_css("style.css")
 remote_css('https://fonts.googleapis.com/icon?family=Material+Icons') 
     
-session_state = get(password='')
+# session_state = get(password='')
 
-if session_state.password != 'pwd123':
-    pwd_placeholder = st.sidebar.empty()
-    pwd = pwd_placeholder.text_input("Password:", value="", type="password")
-    session_state.password = pwd
-    if session_state.password == 'pwd123':
-        pwd_placeholder.empty()
-        main()
-    elif session_state.password != '':
-        st.error("the password you entered is incorrect")
-else:
-    main()   
-
+# if session_state.password != 'pwd123':
+#     pwd_placeholder = st.sidebar.empty()
+#     pwd = pwd_placeholder.text_input("Password:", value="", type="password")
+#     session_state.password = pwd
+#     if session_state.password == 'pwd123':
+#         pwd_placeholder.empty()
+#         main()
+#     elif session_state.password != '':
+#         st.error("the password you entered is incorrect")
+# else:
+#     main()   
+main()   
     

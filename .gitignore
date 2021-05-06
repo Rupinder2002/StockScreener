@@ -8,3 +8,6 @@ __pycache__/
 __pycache__/insert.cpython-39.pyc
 __pycache__/insert.cpython-39.pyc
 __pycache__/db.cpython-39.pyc
+app.db
+nse.py
+app2 - Copy.db
