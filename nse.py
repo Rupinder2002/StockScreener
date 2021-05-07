@@ -21,8 +21,11 @@ def updateStocksPrice(st,connection):
     cursor = connection.cursor()
     cursor.execute('select Date from stock_price where symbol = "ZYDUSWELL" order by Date desc')
     start_date = cursor.fetchone()
-    start_date = datetime.strptime(start_date[0], '%Y-%m-%d') + timedelta(1)
-    start_date = start_date.date()
+    if start_date is None:
+        start_date = date.today()
+    else:    
+        start_date = datetime.strptime(start_date[0], '%Y-%m-%d') + timedelta(1)
+        start_date = start_date.date()
     end=date.today()
     first,last = st.beta_columns(2)
     first.subheader(f'Start Date : {start_date}')

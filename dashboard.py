@@ -364,7 +364,7 @@ def main():
         st.title(dashboard)
         icon('update')
         if st.button('Update Tables'):
-            status = nse.updateTableList(st,connection)
+            status = nse.updateTableList(connection)
             if status == 'Success':
                 st.balloons()
         if st.button('Update Stocks Price'):
