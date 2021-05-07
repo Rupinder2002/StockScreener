@@ -4,4 +4,3 @@ nsetools==1.0.11
 streamlit==0.81.0
 plotly==4.14.3
 matplotlib==3.4.1
-TA-Lib==0.4.19

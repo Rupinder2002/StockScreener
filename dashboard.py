@@ -21,7 +21,6 @@ import supertrend
 from SessionState import get
 import update_stock
 import nse
-import talib as tb
 
 
 connection = db.getConnectionCursor()
@@ -60,28 +59,28 @@ def main():
         st.dataframe(pd.DataFrame(result['data']))
         
         
-    elif dashboard == 'Pattern':
-        stocks= {}
-        print(f'Inside dashboard : {dashboard}')
-        st.title(dashboard)
-        cursor.execute('''select symbol from stock''')
-        stocks_symbols = cursor.fetchall()
-        stocks = [item for t in stocks_symbols for item in t]
-        symbol = st.sidebar.selectbox("Select the Stock",stocks) 
-        df = pd.read_sql("select open,high,low,close,symbol from stock_price where symbol ='"+symbol+"'", connection)
-        cursor.execute('''select key,name from patterns''')
-        patterns = cursor.fetchall()
-        # patterns = [item for t in patterns for item in t]
-        for pattern in patterns:
-            pattern_function = getattr(tb,pattern[0])
-            result = pattern_function(df['Open'],df['High'],df['Low'],df['Close'])
-            last = result.tail(1).values[0]
-            if last>0:
-                st.write("Patter name : "+pattern[1])
-                st.write("BULLISH")
-            elif last<0:
-                st.write("Patter name : "+pattern[1])
-                st.write("BEARISH")
+    # elif dashboard == 'Pattern':
+    #     stocks= {}
+    #     print(f'Inside dashboard : {dashboard}')
+    #     st.title(dashboard)
+    #     cursor.execute('''select symbol from stock''')
+    #     stocks_symbols = cursor.fetchall()
+    #     stocks = [item for t in stocks_symbols for item in t]
+    #     symbol = st.sidebar.selectbox("Select the Stock",stocks) 
+    #     df = pd.read_sql("select open,high,low,close,symbol from stock_price where symbol ='"+symbol+"'", connection)
+    #     cursor.execute('''select key,name from patterns''')
+    #     patterns = cursor.fetchall()
+    #     # patterns = [item for t in patterns for item in t]
+    #     for pattern in patterns:
+    #         pattern_function = getattr(tb,pattern[0])
+    #         result = pattern_function(df['Open'],df['High'],df['Low'],df['Close'])
+    #         last = result.tail(1).values[0]
+    #         if last>0:
+    #             st.write("Patter name : "+pattern[1])
+    #             st.write("BULLISH")
+    #         elif last<0:
+    #             st.write("Patter name : "+pattern[1])
+    #             st.write("BEARISH")
 
     elif dashboard == 'Strategies':  
         print(f'Inside dashboard : {dashboard}')
