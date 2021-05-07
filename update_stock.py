@@ -1,12 +1,11 @@
 import db
 import nse
 
-def updateStocks(st,connection):
+def updateTables(st,connection):
     try:
         print(f'Inside update stock')
-        #createTables(connection)
-        #deleteTableRows(connection)
-        updateTables(st,connection)
+        createTables(connection)
+        deleteTableRows(connection)
     except Exception as e:
         print("Exception while updating stocks  and exception {}".format(e))
     return "Success"
@@ -44,6 +43,6 @@ def deleteTableRows(connection):
     cursor.execute('DELETE from sectors')
     connection.commit()
     
-def updateTables(st,connection):
+def updateStockPrice(st,connection):
     print(f'Inside updateTables')
     nse.updateStocksPrice(st,connection)        

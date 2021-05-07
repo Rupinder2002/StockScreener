@@ -8,7 +8,7 @@ from datetime import date,timedelta
 #import db
 from datetime import datetime
 
-def updateStocksList(connection):
+def updateTableList(connection):
     nse = Nse()
     all_stock_codes = nse.get_stock_codes(cached=False)
     all_stock_codes.pop('SYMBOL',None)

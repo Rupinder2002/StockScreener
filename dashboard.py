@@ -363,12 +363,16 @@ def main():
         print(f'Inside dashboard : {dashboard}')
         st.title(dashboard)
         icon('update')
-        if st.button('Update Stocks'):
-            status = update_stock.updateStocks(st,connection)
+        if st.button('Update Tables'):
+            status = nse.updateTableList(st,connection)
             if status == 'Success':
                 st.balloons()
-        if st.button('Update Stocks List'):
-            status = nse.updateStocksList(connection)
+        if st.button('Update Stocks Price'):
+            status = update_stock.updateStockPrice(st,connection)
+            if status == 'Success':
+                st.balloons()
+        if st.button('Create Stocks Tables'):
+            status = update_stock.updateTables(connection)
             if status == 'Success':
                 st.balloons()
         
