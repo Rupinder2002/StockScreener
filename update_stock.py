@@ -1,9 +1,9 @@
 import db
 import nse
 
-def updateTables(st,connection):
+def updateTables(connection):
     try:
-        print(f'Inside update stock')
+        print(f'Inside create tables')
         createTables(connection)
         deleteTableRows(connection)
     except Exception as e:
@@ -44,5 +44,5 @@ def deleteTableRows(connection):
     connection.commit()
     
 def updateStockPrice(st,connection):
-    print(f'Inside updateTables')
+    print(f'Inside update stockk price')
     nse.updateStocksPrice(st,connection)        
